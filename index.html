@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>lv</title>
+    <style>
+    /* tooltip style */
+        .g-tl{position:absolute;z-index:1002;text-align:left;margin-top:0;display:none; font-size:12px;}
+.g-tl .bd{border:1px solid #AA7C00;background:#FFFFDD;padding:5px;}
+.g-tl .bd span.red{color:#C10000;}
+.g-tl .ft{position:absolute;font-size:0;width:17px;height:11px;}
+.g-tl .bb{position:relative;background:url(/images/ico.png) -109px -46px;left:5px;top:-1px;}
+.g-tl .bt{background:url(/images/ico.png) -109px -35px;left:5px;top:-10px;}
+.g-tl .bl{background:url(/images/ico.png) -86px -35px;width:11px;height:17px;left:-10px;top:5px;}
+.g-tl .br{background:url(/images/ico.png) -97px -35px;width:11px;height:17px;right:-10px;top:5px;}
+.g-tip {background:#fffeaa; display:inline-block; line-height:21px; padding:0 10px; position:absolute; right:0; bottom:0; color:red;}
+/* end tooltip style */
+.invalid {
+    border: 1px solid #f00;
+}
+.red {
+    color: red;
+}
+    </style>
+    <!--[if lte IE 8]><script src="lib/es5-shim.min.js"></script><![endif]-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+</head>
+<body>
+    <form id="form2" novalidate="novalidate" onsubmit="return false;">
+        <div>
+            <p>同一个name绑定多个input; </p>
+            <div><input name="field1" type="text" id="f1"></div>
+            <div><input name="field1" type="text"></div>
+        </div>
+        <div>
+            必填。最大长度5，只能是正整数
+            <div><input name="field12" type="number" required="" data-rules="positiveInt|maxlength(5)" /><span class="red">*</span></div>
+        </div>
+        <div>
+            <p>必填，且要求长度为6-16</p>
+            <input name="field2" type="number" number data-rules="length(6,16)" required><span class="red">*</span>
+        </div>
+        <div>
+            <p>必填。 使用在rules中的自定义规则: 只能是整数</p>
+            <input name="field4" type="text" data-rules="int" required=""><span class="red">*</span>
+        </div>
+        <div>
+            <p>测试fail/pass，必填，只能数字，长度大于5，通过时文字绿色，失败时文字红色，自定义错误文本格式</p>
+            <input name="field9" type="text" ><span class="red">*</span>
+            <div id="field9Message" style="color:#f00"></div>
+        </div>
+        <div>
+            <p>只能填数字, 1< N < 99</p>
+            <div><input name="field11" type="number" number min="1" max="99" /></div>
+            <div><input name="field11" type="number" number range="1,99" /></div>
+        </div>
+        <div>
+            <p>正则匹配只能英文字母</p>
+            <input name="field4" type="text" pattern="[a-z]+">
+        </div>
+        <div>
+            <p>手动验证，长度为4</p>
+            <input name="field5" id="manul2" type="text" length="4">
+            <a href="javascript:;" onclick="onManul()">点击验证</a>
+            <p name="message2" style="color:#39f">要求长度为4</p>
+        </div>
+        <div>
+            <p>测试radio，因为只有required规则，所以请滚到页面底部点击提交按钮测试</p>
+            <input type="radio" name="radio1" value="2">
+            <input type="radio" name="radio1" value="3">
+            <input type="radio" name="radio1" value="4"  data-rule="required">
+        </div>
+        <div>
+            <p>测试async功能，先点击页面底部提交按钮查看效果</p>
+            <p>点击true或false按钮模拟收到服务器结果进行设值</p>
+            <div>
+                <input name="field6" type="text" value="测试值">
+                <button type="button" onclick="async6(1)">true</button>
+                <button type="button" onclick="async6(2)">false</button>
+            </div>
+        </div>
+        <div>
+            <p>长度大于3，只能是正整数</p>
+            <input name="field8" type="number" data-rules="positiveInt" minlength="4">
+        </div>
+        <button type="reset" onclick="resetStyle()">重置</button>
+        <button type="button" onclick="testShort()">当有一个规则失败时短路验证"short"</button>
+        <div style="margin-top:10px"><b>提交按钮在网页底部，测试submit和locate功能</b></div>
+        <button style="margin: 100px 0 0 5px;" type="submit">提交</button>
+    </form>
+    <script src="lib/jquery.tooltip.js"></script>
+    <script src="src/lv.js"></script>
+    <script>
+    // console.log($('input[type="number"]'));
+        LV('#form2', {
+            short: false,
+            rules: {
+                int: function (val, elem, params) {
+                    return LV.optional(elem) || /^\-?\d+$/.test(val) || '必须是整数';
+                }
+            },
+            fields: {
+                field1: function (val) {
+                    // console.log(val);
+                    return val > 1 && val < 9 || '必须大于1小于9'
+                },
+                field9: {
+                    required: true,
+                    rule: function (val, elem, params) {
+                        return (/^-?\d+(\.{1}\d+)?$/.test(val) && val.length > 5) || '必填，只能是数字，长度大于5';
+                    },
+                    onFail: function (field, err) {
+                        field.style.color = 'red';
+                        $('#field9Message').text(err);
+                    },
+                    onPass: function (field) {
+                        field.style.color = 'green';
+                        $('#field9Message').text('');
+                    }
+                }
+            },
+            onSubmit: function (vali, form) {
+                console.log(vali, form.radio1.value);
+            },
+            // 关闭输入时验证
+            testOnInput: false
+        });
+        function onManul() {
+            LV.vali($('#manul2')[0]);
+        }
+        setTimeout(function () {
+            LV.vali($('[name="field2"]'));
+        },1000)
+    </script>
+</body>
+</html>
+
