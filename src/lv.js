@@ -384,20 +384,19 @@ var LV = (function (window) {
     return LV;
 })(this);
 
-var defaultonFail = LV.getDefaults().onFail;
-LV.setDefaults({
-    onFail: function (field, errString) {
-        if (!errString.length) {
-            return;
+(function (LV) {
+    var defaultonFail = LV.getDefaults().onFail;
+    LV.setDefaults({
+        onFail: function (field, errString) {
+            if (!errString.length) {
+                return;
+            }
+            defaultonFail(field, errString);
+            try {
+                $(field).tooltip({ html: errString.join(';'), isFocus: true, sticky: true });
+            } catch (e) {
+                console.log(e.stack);
+            }
         }
-        defaultonFail(field, errString);
-        try {
-            $(field).tooltip({ html: errString.join(';'), isFocus: true, sticky: true });
-        } catch (e) {
-            console.log(e.stack);
-        }
-    }
-});
-LV.addRule('woqu', function (val) {
-    return val > 10 && val < 99 || '必须大于10小于99'
-})
+    });
+})(LV);
