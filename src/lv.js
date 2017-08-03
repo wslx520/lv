@@ -8,6 +8,15 @@ var LV = (function (window) {
         console.log(str, loaners)
         return str;
     }
+    function isString(str) {
+        return 'string' === typeof str;
+    }
+    function isFn(fn) {
+        return 'function' === typeof fn;
+    }
+    function isArray(arr) {
+        return !!arr.splice;
+    }
     var lang = {
         number: '只允许数字',
         names: '错误的名称格式',
@@ -141,6 +150,116 @@ var LV = (function (window) {
             return att;
         }
         return att.split(',');
+    };
+    function disposeErrString(vali, errString) {
+        if (vali !== true) {
+            errString.push(vali);
+        }
+    }
+    function getRequired(field) {
+        return typeof field.required === 'boolean' ? field.required : field.required != null;
+    }
+    function executeVali(fn, val, field, params) {
+        return fn(val, field, params);
+    }
+    function doFieldRule(ruleF, rules) {
+        if (isString(ruleF)) {
+            doStringRules(ruleF, rules);
+        } else if (isFn(ruleF)) {
+            rules.push(ruleF);
+        } else if (isArray(ruleF)) {
+            rules = rules.concat(ruleF);
+        } else if (Object.prototype.toString.call(ruleF) == "[object Object]") {
+            if (ruleF.rule) {doFieldRule(ruleF.rule, rules)}
+        }
+    }
+    function doAction(action, val, field, executed, rulesInConf) {
+        if (isString(action)) {
+            if (executed[action]) return true;
+            executed[action] = true;
+            var fn = rulesInConf && rulesInConf[action] || Rules[action];
+            if (fn) {
+                return fn(val, field);
+            }
+        } else if (isFn(action)) {
+            return action(val, field);
+        } else if (isArray(action)) {
+            var a0 = action[0];
+            if (executed[a0]) return true;
+            executed[a0] = true;
+            var fn = rulesInConf && rulesInConf[a0] || Rules[a0];
+            return fn(val, field, action[1]);
+        }
+    }
+    function doStringRules(str, rules) {
+        str = str.split('|');
+        for (var r = 0; r< str.length; r++) {
+            var arule = str[r];
+            var paramIndex = arule.indexOf('(');
+            var params = '';
+            if (~paramIndex) {
+                // var arule = arule.substring(0, paramIndex);
+                var ruleName = arule.substring(0, paramIndex);
+                params = arule.slice(paramIndex + 1, -1);
+                // console.log(arule, paramIndex, params);
+                if (params) {
+                    params = getParams(params);
+                }
+                arule = ruleName;
+            }
+            rules.push([arule, params]);
+        }
+    }
+    function valis(field, short, rulesInConf, rulesInFields, onPass, onFail) {
+        var _this = field, $this = $(_this);
+        var name = _this.name;
+        var val = _this.value;
+        if (!_this._rules_) {
+            var rules = _this._rules_ = [];
+            var required = getRequired(_this);
+            if (required) {
+                rules.push('required');
+            }
+            var type = _this.type;
+            if (Rules[type]) {
+                rules.push(type);
+            }
+            for(var j in Rules) {
+                var att = $this.attr(j);
+                if (att != null) {
+                    rules.push([j, getParams(att)]);
+                }
+            }
+            // 最先验证 html 中写的规则
+            var rulesInHtml = $this.attr('data-rules');
+            if (rulesInHtml) {
+                doStringRules(rulesInHtml, rules);
+            }
+            if (rulesInFields && rulesInFields[name]) {
+                doFieldRule(rulesInFields[name], rules);
+            }
+        }
+        var rules = _this._rules_;
+        var executed = {};
+        var errString = [];
+        for (var r = 0; r< rules.length; r++) {
+            var action = rules[r];
+            var err = doAction(action, val, _this, executed, rulesInConf);
+            if (err != true) {
+                errString.push(err);
+            }
+            if (errString.length && short) {
+                break;
+            }
+        }
+        console.log(errString)
+        if (errString.length) {
+            onFail && onFail(_this, errString);
+            return false;
+        } else {
+            onPass && onPass(_this);
+            return true;
+        }
     }
     var LV = function (form, conf) {
         if (typeof form === 'string') {
@@ -152,149 +271,10 @@ var LV = (function (window) {
         var rulesInConf = conf.rules || {};
         var rulesInFields = conf.fields || {};
         var short = conf.short == null ? defaults.short : conf.short;
-        function ruleType(rule) {
-            console.log(rule);
-            if (typeof rule === 'string') {
-                return rulesInConf[rule] || Rules[rule];
-            }
-            return null;
-        }
-        // 执行验证函数
-        function doVali(rule, val, elem, params) {
-            // console.log(rule, val, elem,  params);
-            if (typeof rule === 'string') {
-                var ruleFn = ruleType(rule);
-                if (!ruleFn) {
-                    console.error('[LV] has no rule `' + rule + '`.')
-                } else {
-                    return ruleFn(val, elem, params);
-                }                
-            } else if (typeof rule === 'function') {
-                return rule(val, elem, params);
-            } else if (rule.splice) {
-                var errString = [];
-                for (var r = 0; r< rule.length; r++) {
-                    var vali = doVali(rule[r], val, elem, params);
-                    if (vali !== true) {
-                        errString.push(vali);
-                        if (short) {
-                            return errString;
-                        }
-                    }
-                }
-                return errString;
-            }
-        }
+
         // oninput 时的验证加入定时器延迟
         var inputTimer = null;
-        var validate = function (field) {
-            var _this = field;
-            if (_this.nodeType !== 1) {
-                _this = _this[0];
-            }
-            var $this = $(_this);
-            var name = _this.name;
-            var type = _this.type && _this.type.toLowerCase();
-            // IE9- 对 type=number 强制渲染为 type=text (type总是text), 取不出真正的 type
-            // console.log('xxxxxxxxxx',_this.getAttribute('type'),_this.getAttributeNode('type').value);
-            var val = _this.value;
-            var required = (rulesInFields[name] && rulesInFields[name].required) || (typeof _this.required === 'boolean' ? _this.required 
-                            : _this.required != null);
-            // 如果时是非必填，且值为空
-            console.log(required, val == '', name);
-            if (val == '' && !required ) {
-                return true;
-            }
-            var isInpt = _this.tagName === 'INPUT';
-            // 错误提示字符串
-            var errString = [];
-            // 得到本字段的验证规则
-            var rules = [];
-            // 最先验证 html 中写的规则
-            var rulesInHtml;
-            // 处理 errString
-            function disposeVali(valiFn, params) {
-                var vali = valiFn(val, field, params);
-                // console.log(vali);
-                return disposeErrString(vali);
-            }
-            function disposeErrString(vali) {
-                if (vali !== true) {
-                    errString.push(vali);
-                    if (short) {
-                        onFail(field, errString);
-                        return false;
-                    }
-                }
-                return true;
-            }
-            var exclude = null;
-            if (Rules[type]) {
-                exclude = type;
-                var vali = disposeVali(Rules[type]);
-                if (!vali && short) {
-                    return vali;
-                }
-            }
-            for(var j in Rules) {
-                if (!exclude || j != exclude) {
-                    var att = $this.attr(j);
-                    if (att != null) {
-                        if(!disposeVali(Rules[j], getParams(att))) return false;
-                    }    
-                }
-                
-            }
-            if (rulesInHtml = $this.attr('data-rules')) {
-                rulesInHtml = rulesInHtml.split('|');
-                for (var r = 0; r < rulesInHtml.length; r++){
-                    var arule = rulesInHtml[r];
-                    var paramIndex = arule.indexOf('(');
-                    if (~paramIndex) {
-                        // var arule = arule.substring(0, paramIndex);
-                        var ruleName = arule.substring(0, paramIndex);
-                        var params = arule.slice(paramIndex + 1, -1);
-                        // console.log(arule, paramIndex, params);
-                        if (params) {
-                            params = getParams(params);
-                        }
-                        arule = ruleName;
-                    }
-                    // console.log(arule, vali);
-                    if(!disposeErrString(doVali(arule, val, field, params))) return false;
-                }
-            }
-            if (rulesInFields[name]) {
-                var ff = rulesInFields[name];
-                // 如果是个对象, 可能包含以下 key
-                // rule, short, onFail, onPass
-                if (Object.prototype.toString.call(ff) == "[object Object]") {
-                    var vali = doVali(ff.rule, val, field);
-                    var fOnPass = ff.onPass || onPass;
-                    var fonFail = ff.onFail || onFail;
-                    if (vali == true) {
-                        if (ff.onPass) ff.onPass(field);
-                        return true;
-                    } else {
-                        if (ff.onFail) ff.onFail(field, vali);
-                        return false;
-                    }
-                    if(!disposeErrString(vali)) return false;
-                    
-                } else {
-                    if(!disposeErrString(doVali(ff, val, field))) return false;
-                }
-                
-            }
-            if (errString && errString.length) {
-                onFail(field, errString);
-                return false;
-            } else {
-                onPass(field);
-                return true;
-            }
-            return true;
-        };
+
         if (!form.__watched__) {
             var eventTypes = [];
             var toi = conf.testOnInput == null ? defaults.testOnInput : conf.testOnInput;
@@ -311,9 +291,8 @@ var LV = (function (window) {
             // console.log(eventTypes);
             var $form = $(form);
             if (eventTypes.length) {
-                eventTypes = eventTypes.join(' ');
                 // onpropertychange 事件不支持冒泡，所以在form上加上对应监听也没用
-                $form.on(eventTypes, 'input, select, textarea', function (e) {
+                $form.on(eventTypes.join(' '), 'input, select, textarea', function (e) {
                     // console.log(lteIE8, e, e.type, e.originalEvent.propertyName );
                     if (lteIE8 && e.type == 'propertychange' && e.propertyName != 'value') {
                         return;
@@ -321,7 +300,8 @@ var LV = (function (window) {
                     clearTimeout(inputTimer);
                     var _this = this;
                     inputTimer = setTimeout(function () {
-                        validate(_this); 
+                        // validate(_this);
+                        valis(_this, short, rulesInConf, rulesInFields, onPass, onFail);
                     },100);
                     
                 })
@@ -348,7 +328,10 @@ var LV = (function (window) {
             });
             form.__watched__ = true;
         }
-        form._validate = validate;
+        // form._validate = validate;
+        form._validate = function (field) {
+            return valis(field, short, rulesInConf, rulesInFields, onPass, onFail);
+        };
         // console.log(form, form._validate);
     };
     LV.setDefaults = function (obj) {
@@ -361,14 +344,24 @@ var LV = (function (window) {
         Rules[ruleName] = fn;
     };
     // 直接验证某个字段
-    LV.vali = function (field) {
-        if (field.selector) {
-            field = field[0];
-        }
-        var form = field.form;
-        // console.log(field, form,form._validate);
-        if (form && form._validate) {
-            form._validate(field);
+    LV.vali = function (field, callback) {
+
+        if (field.tagName === 'FORM') {
+            if (field.vali) {
+                var vali = field.vali(field);
+                if (callback) callback(vali, field);
+            }
+        } else {
+            var form = field.form;
+            // console.log(field, form,form._validate);
+            if (form && form._validate) {
+                var vali = form._validate(field);
+                if (callback) callback(vali, field);
+            } else {
+                // var vali = defaultVali(field, true, callback);
+                var vali = valis(field, false, null, null, LV.getDefaults().onPass, LV.getDefaults().onFail);
+                if (callback) callback(vali, field);
+            }
         }
     };
     LV.optional = function (field) {

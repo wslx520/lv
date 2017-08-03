@@ -23,73 +23,73 @@
 .red {
     color: red;
 }
+td {
+    border: 1px solid #f0f0f0;
+}
     </style>
     <!--[if lte IE 8]><script src="lib/es5-shim.min.js"></script><![endif]-->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
 </head>
 <body>
     <form id="form2" novalidate="novalidate" onsubmit="return false;">
-        <div>
-            <p>同一个name绑定多个input; </p>
+        <table>
+            <tbody>
+                <tr>
+                    <td>
+                    <p>field1: 同一个name绑定多个input; </p>
             <div><input name="field1" type="text" id="f1"></div>
-            <div><input name="field1" type="text"></div>
-        </div>
-        <div>
-            必填。最大长度5，只能是正整数
-            <div><input name="field12" type="number" required="" data-rules="positiveInt|maxlength(5)" /><span class="red">*</span></div>
-        </div>
-        <div>
-            <p>必填，且要求长度为6-16</p>
-            <input name="field2" type="number" number data-rules="length(6,16)" required><span class="red">*</span>
-        </div>
-        <div>
-            <p>必填。 使用在rules中的自定义规则: 只能是整数</p>
-            <input name="field4" type="text" data-rules="int" required=""><span class="red">*</span>
-        </div>
-        <div>
-            <p>测试fail/pass，必填，只能数字，长度大于5，通过时文字绿色，失败时文字红色，自定义错误文本格式</p>
+            <div><input name="field1" type="text"></div>    
+                    </td>
+                    <td>
+            <p>field12: 必填。最大长度5，只能是正整数</p>
+            <div><input name="field12" type="number" required="" data-rules="positiveInt|maxlength(5)" /><span class="red">*</span></div></td>
+                </tr>
+                <tr>
+                    <td>
+            <p>field2: 必填，且要求长度为6-16</p>
+            <input name="field2" type="number" number data-rules="length(6,16)|int" required><span class="red">*</span></td>
+                    <td>
+            <p>field4: 必填。 使用在rules中的自定义规则: 必须是yyyy-MM-dd日期形式</p>
+            <input name="field4" type="text" data-rules="date" required=""><span class="red">*</span></td>
+                </tr>
+                <tr>
+                    <td>
+            <p>field9: 测试fail/pass，必填，只能数字，长度大于5，通过时文字绿色，失败时文字红色，自定义错误文本格式</p>
             <input name="field9" type="text" ><span class="red">*</span>
-            <div id="field9Message" style="color:#f00"></div>
-        </div>
-        <div>
-            <p>只能填数字, 1< N < 99</p>
+            <div id="field9Message" style="color:#f00"></div></td>
+                    <td>
+            <p>field11: 只能填数字, 1< N < 99</p>
             <div><input name="field11" type="number" number min="1" max="99" /></div>
-            <div><input name="field11" type="number" number range="1,99" /></div>
-        </div>
-        <div>
-            <p>正则匹配只能英文字母</p>
-            <input name="field4" type="text" pattern="[a-z]+">
-        </div>
-        <div>
-            <p>手动验证，长度为4</p>
+            <div><input name="field11" type="number" number range="1,99" /></div></td>
+                </tr>
+                <tr>
+                    <td>
+            <p>field4: 正则匹配只能英文字母</p>
+            <input name="field4" type="text" pattern="[a-z]+"></td>
+                    <td>
+            <p>field5: 手动验证，长度为4</p>
             <input name="field5" id="manul2" type="text" length="4">
             <a href="javascript:;" onclick="onManul()">点击验证</a>
-            <p name="message2" style="color:#39f">要求长度为4</p>
-        </div>
-        <div>
-            <p>测试radio，因为只有required规则，所以请滚到页面底部点击提交按钮测试</p>
-            <input type="radio" name="radio1" value="2">
-            <input type="radio" name="radio1" value="3">
-            <input type="radio" name="radio1" value="4"  data-rule="required">
-        </div>
-        <div>
-            <p>测试async功能，先点击页面底部提交按钮查看效果</p>
-            <p>点击true或false按钮模拟收到服务器结果进行设值</p>
-            <div>
-                <input name="field6" type="text" value="测试值">
-                <button type="button" onclick="async6(1)">true</button>
-                <button type="button" onclick="async6(2)">false</button>
-            </div>
-        </div>
-        <div>
-            <p>长度大于3，只能是正整数</p>
-            <input name="field8" type="number" data-rules="positiveInt" minlength="4">
-        </div>
+            <p name="message2" style="color:#39f">要求长度为4</p></td>
+                </tr>
+                <tr>
+                    <td>
+            <p>field8: 长度大于3，只能是正整数</p>
+            <input name="field8" type="number" data-rules="positiveInt" minlength="4"></td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
         <button type="reset" onclick="resetStyle()">重置</button>
         <button type="button" onclick="testShort()">当有一个规则失败时短路验证"short"</button>
-        <div style="margin-top:10px"><b>提交按钮在网页底部，测试submit和locate功能</b></div>
-        <button style="margin: 100px 0 0 5px;" type="submit">提交</button>
+        <button style="" type="submit">提交</button>
     </form>
+    <hr>
+    <div>
+        <p>notinform: 这个字段不在form中</p>
+        <input type="number" name="notinform" number min="4" maxlength="7" required="" data-rules="positiveInt" id="notinform">
+        <button id="vali_notin">验证</button>
+    </div>
     <script src="lib/jquery.tooltip.js"></script>
     <script src="src/lv.js"></script>
     <script>
@@ -99,6 +99,9 @@
             rules: {
                 int: function (val, elem, params) {
                     return LV.optional(elem) || /^\-?\d+$/.test(val) || '必须是整数';
+                },
+                date: function (val, elem, params) {
+                    return LV.optional(elem) || /^\d{4}-\d{1,2}-\d{1,2}$/.test(val) || '必须是yyyy-MM-dd日期形式';
                 }
             },
             fields: {
@@ -122,7 +125,7 @@
                 }
             },
             onSubmit: function (vali, form) {
-                console.log(vali, form.radio1.value);
+                console.log(vali);
             },
             // 关闭输入时验证
             testOnInput: false
@@ -131,8 +134,17 @@
             LV.vali($('#manul2')[0]);
         }
         setTimeout(function () {
-            LV.vali($('[name="field2"]'));
+            LV.vali($('[name="field2"]')[0]);
         },1000)
+
+        LV.vali($('#notinform')[0], function (vali, field) {
+            console.log(vali, field)
+        });
+        $('#vali_notin').on('click', function (e) {
+            LV.vali($('#notinform')[0], function (vali, field) {
+                console.log(vali, field)
+            });
+        })
     </script>
 </body>
 </html>
