@@ -5,7 +5,6 @@ var LV = (function (window) {
         for(var i = 0; i < loaners.length; i++) {
             str = str.replace('{'+i+'}', loaners[i]);
         }
-        console.log(str, loaners)
         return str;
     }
     function isString(str) {
@@ -58,11 +57,9 @@ var LV = (function (window) {
             return val && val.trim().length > 0 || lang.required;
         },
         min: function (val, elem, limit) {
-            console.log(val , limit);
             return val-0 >= limit-0 || replace(lang.range_greater, [limit]);
         },
         max: function (val, elem, limit) {
-            console.log(val , limit, val <= limit);
             return val-0 <= limit-0 || replace(lang.range_less, [limit]);
         },
         minlength: function (val, elem, len) {
@@ -131,11 +128,11 @@ var LV = (function (window) {
         onFail: function (field, err) {
             // $(field).closest('td').find('valid-error').addClass('show').text('err');
             $(field).addClass('invalid');
-            console.log(field, err);
+            // console.log(field, err);
         },
         onPass: function (field) {
             $(field).removeClass('invalid');
-            console.log(field, 'passed!');
+            // console.log(field, 'passed!');
         },
         // 短路验证, 即有一个验证未通过, 则立即抛错, 不再验证后续规则
         short: true,
@@ -252,12 +249,22 @@ var LV = (function (window) {
                 break;
             }
         }
-        console.log(errString)
+        console.log(errString);
+        var fieldConf = rulesInFields && rulesInFields[name];
         if (errString.length) {
-            onFail && onFail(_this, errString);
+            if (fieldConf && fieldConf.onFail) {
+                fieldConf.onFail(_this, errString);
+            } else {
+                onFail && onFail(_this, errString);
+            }
+            
             return false;
         } else {
-            onPass && onPass(_this);
+            if (fieldConf && fieldConf.onPass) {
+                fieldConf.onPass(_this, errString);
+            } else {
+                onPass && onPass(_this, errString);
+            }
             return true;
         }
     }
@@ -359,7 +366,7 @@ var LV = (function (window) {
                 if (callback) callback(vali, field);
             } else {
                 // var vali = defaultVali(field, true, callback);
-                var vali = valis(field, false, null, null, LV.getDefaults().onPass, LV.getDefaults().onFail);
+                var vali = valis(field, false, null, null, LV.getDefaults('onPass'), LV.getDefaults('onFail'));
                 if (callback) callback(vali, field);
             }
         }
@@ -371,14 +378,14 @@ var LV = (function (window) {
         
     };
     // 确保外部不能直接使用 lv.defaults = {}来覆盖 defaults
-    LV.getDefaults = function () {
-        return defaults;
+    LV.getDefaults = function (key) {
+        return key == null ? defaults : defaults[key];
     }
     return LV;
 })(this);
 
 (function (LV) {
-    var defaultonFail = LV.getDefaults().onFail;
+    var defaultonFail = LV.getDefaults('onFail');
     LV.setDefaults({
         onFail: function (field, errString) {
             if (!errString.length) {

@@ -95,7 +95,7 @@ td {
     <script>
     // console.log($('input[type="number"]'));
         LV('#form2', {
-            short: false,
+            // short: false,
             rules: {
                 int: function (val, elem, params) {
                     return LV.optional(elem) || /^\-?\d+$/.test(val) || '必须是整数';
