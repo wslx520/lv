@@ -22,9 +22,9 @@ var LV = (function (window) {
         email: '错误的E-mail格式',
         pattern: '必须匹配 `{0}`',
         range_equal: '必须等于 {0}',
-        range_scope: '必须大于 {0} 且小于 {1}',
-        range_greater: '必须大于 {0}',
-        range_less: '必须小于 {0}',
+        range_scope: '必须大于等于 {0} 且小于等于 {1}',
+        range_greater: '必须大于等于 {0}',
+        range_less: '必须小于等于 {0}',
         range_no_number: '必须是数字',
         error_param: '错误的参数',
         length_equal: '长度必须等于 {0}',
@@ -32,7 +32,7 @@ var LV = (function (window) {
         length_greater: '长度必须大于等于 {0}',
         length_less: '长度必须小于等于 {0}',
         password: '密码格式不合规范',
-        positive_int: '必须是正整数',
+        positive_int: '必须是非负整数',
         required: '必填'
     };
     var Regexps = {
@@ -146,7 +146,7 @@ var LV = (function (window) {
         if (!att || att.indexOf(',') === -1) {
             return att;
         }
-        return att.split(',');
+        return att.split(/\s*,\s*/);
     };
     function disposeErrString(vali, errString) {
         if (vali !== true) {
@@ -249,7 +249,7 @@ var LV = (function (window) {
                 break;
             }
         }
-        console.log(errString);
+        // console.log(errString);
         var fieldConf = rulesInFields && rulesInFields[name];
         if (errString.length) {
             if (fieldConf && fieldConf.onFail) {
@@ -313,13 +313,14 @@ var LV = (function (window) {
                     
                 })
             }
-            $form.on('submit', function (e) {
-                var _this = this;
+
+            var submitHandler = function (form) {
+                var _this = form;
                 var elements = _this.elements;
                 var vali, allVali = true;
                 $.each(elements, function (i, field) {
                     if (field.name) {
-                        vali = validate(field);
+                        vali = valis(field, short, rulesInConf, rulesInFields, onPass, onFail);
                         if (vali != true) {
                             allVali = false;
                             if (short) {
@@ -328,12 +329,18 @@ var LV = (function (window) {
                         }
                     }
                 });
+                return allVali;
+            };
+            $form.on('submit', function (e) {
+                var valid = submitHandler(this);
                 if (conf.onSubmit) {
-                    conf.onSubmit(allVali, _this);
+                    conf.onSubmit(valid, this);
                 }
                 return false;
             });
             form.__watched__ = true;
+            form.vali = submitHandler;
+            form.setAttribute('novalidate', "novalidate");
         }
         // form._validate = validate;
         form._validate = function (field) {
@@ -399,4 +406,20 @@ var LV = (function (window) {
             }
         }
     });
+    LV.addRule('fixed', function (val, elem, param) {
+        if (param.splice) {
+            var decimal = param[0], int = param[1];
+        } else {
+            decimal = param;
+        }
+        if (int && decimal) {
+            '^\\d{1,7}(\\.\\d{1,1})?$';
+            var reg = '^\\d{1,' + int + '}(\\.\\d{1,' + decimal +'})?$';
+            var err = '最大'+ int + '位整数;最大' + decimal + '位小数';
+        } else if (decimal) {
+            reg = '^\\d+(\\.\\d{1,' + decimal +'})?$';
+            err = '最大' + decimal + '位小数';
+        }
+        return new RegExp(reg).test(val) || err;
+    })
 })(LV);

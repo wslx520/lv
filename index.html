@@ -105,12 +105,9 @@ td {
                 }
             },
             fields: {
-                field1: function (val) {
-                    // console.log(val);
-                    return val > 1 && val < 9 || '必须大于1小于9'
-                },
+                field1: 'fixed(1,7)',
                 field9: {
-                    required: true,
+                    // required: true,
                     rule: function (val, elem, params) {
                         return (/^-?\d+(\.{1}\d+)?$/.test(val) && val.length > 5) || '必填，只能是数字，长度大于5';
                     },
@@ -124,11 +121,11 @@ td {
                     }
                 }
             },
+            // 关闭输入时验证
+            // testOnInput: false,
             onSubmit: function (vali, form) {
                 console.log(vali);
-            },
-            // 关闭输入时验证
-            testOnInput: false
+            }
         });
         function onManul() {
             LV.vali($('#manul2')[0]);
