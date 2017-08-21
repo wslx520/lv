@@ -211,9 +211,9 @@ var LV = (function (window) {
         var _this = field, $this = $(_this);
         var name = _this.name;
         var val = _this.value;
+        var required = getRequired(_this);
         if (!_this._rules_) {
             var rules = _this._rules_ = [];
-            var required = getRequired(_this);
             if (required) {
                 rules.push('required');
             }
@@ -235,6 +235,11 @@ var LV = (function (window) {
             if (rulesInFields && rulesInFields[name]) {
                 doFieldRule(rulesInFields[name], rules);
             }
+        }
+        // 如果时是非必填，且值为空
+        // console.log(required, val == '', name);
+        if (val == '' && !required ) {
+            return true;
         }
         var rules = _this._rules_;
         var executed = {};
