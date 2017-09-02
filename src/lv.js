@@ -340,6 +340,8 @@ var LV = (function (window) {
                 var valid = submitHandler(this);
                 if (conf.onSubmit) {
                     conf.onSubmit(valid, this);
+                } else if (isFn(conf)) {
+                    conf(valid, this);
                 }
                 return false;
             });
